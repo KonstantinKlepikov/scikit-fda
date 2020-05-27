@@ -7,9 +7,10 @@ list of discretisation points.
 """
 
 import copy
+from enum import Enum
 import numbers
-import findiff
 
+import findiff
 import pandas.api.extensions
 import scipy.stats.mstats
 
@@ -23,6 +24,11 @@ from .interpolation import SplineInterpolator
 
 __author__ = "Miguel Carbajo Berrocal"
 __email__ = "miguel.carbajo@estudiante.uam.es"
+
+
+class DerivativeType(Enum):
+    FINITE_DIFF = 0
+    INTERPOLATION = 1
 
 
 class FDataGrid(FData):
@@ -370,7 +376,8 @@ class FDataGrid(FData):
 
         return self._interpolator_evaluator
 
-    def _evaluate(self, eval_points, *, derivative=0):
+    def _evaluate(self, eval_points, *, derivative=0,
+                  derivative_type=DerivativeType.FINITE_DIFF):
         """"Evaluate the object or its derivatives at a list of values.
 
         Args:
@@ -379,16 +386,21 @@ class FDataGrid(FData):
                 each sample is evaluated at the values in the corresponding row
                 in eval_points.
             derivative (int, optional): Order of the derivative. Defaults to 0.
+            derivative_type (DerivativeType): Method used for computing
+                derivatives. By default, use finite differences.
 
         Returns:
             (numpy.darray): Matrix whose rows are the values of the each
             function at the values specified in eval_points.
 
         """
+        if derivative > 0 and derivative_type is DerivativeType.FINITE_DIFF:
+            return self.derivative(order=derivative)._evaluate(eval_points)
 
         return self._evaluator.evaluate(eval_points, derivative=derivative)
 
-    def _evaluate_composed(self, eval_points, *, derivative=0):
+    def _evaluate_composed(self, eval_points, *, derivative=0,
+                           derivative_type=DerivativeType.FINITE_DIFF):
         """"Evaluate the object or its derivatives at a list of values.
 
         Args:
@@ -397,12 +409,17 @@ class FDataGrid(FData):
                 each sample is evaluated at the values in the corresponding row
                 in eval_points.
             derivative (int, optional): Order of the derivative. Defaults to 0.
+            derivative_type (DerivativeType): Method used for computing
+                derivatives. By default, use finite differences.
 
         Returns:
             (numpy.darray): Matrix whose rows are the values of the each
             function at the values specified in eval_points.
 
         """
+        if derivative > 0 and derivative_type is DerivativeType.FINITE_DIFF:
+            return self.derivative(order=derivative).evaluate_composed(
+                eval_points)
 
         return self._evaluator.evaluate_composed(eval_points,
                                                  derivative=derivative)
